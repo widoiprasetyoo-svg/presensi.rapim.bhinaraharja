@@ -1120,12 +1120,17 @@ function getAdminDashboardData(filterParams, sessionToken) {
         if (!pimRows[p] || !pimRows[p][COL_PIMPINAN.NIK]) continue;
         var pNik = String(pimRows[p][COL_PIMPINAN.NIK]).trim();
         var pNikClean = normalizeNik(pNik);
+        var pNikDigits = pNik.replace(/\D/g, "");
         var pFoto = String(pimRows[p][COL_PIMPINAN.FOTO] || "");
         var pUnit = String(pimRows[p][COL_PIMPINAN.UNIT] || "");
-        photoMap[pNik] = pFoto;
-        photoMap[pNikClean] = pFoto;
+        if (pFoto) {
+          photoMap[pNik] = pFoto;
+          photoMap[pNikClean] = pFoto;
+          if (pNikDigits) photoMap[pNikDigits] = pFoto;
+        }
         unitMap[pNik] = pUnit;
         unitMap[pNikClean] = pUnit;
+        if (pNikDigits) unitMap[pNikDigits] = pUnit;
       }
     }
 
@@ -1196,7 +1201,9 @@ function getAdminDashboardData(filterParams, sessionToken) {
         }
 
         var cleanNik = normalizeNik(nikStr);
-        var rowUnit = unitMap[nikStr] || unitMap[cleanNik] || "";
+        var digitsNik = nikStr.replace(/\D/g, "");
+        var rowUnit = unitMap[nikStr] || unitMap[cleanNik] || unitMap[digitsNik] || "";
+        var userPhoto = photoMap[nikStr] || photoMap[cleanNik] || photoMap[digitsNik] || colFotoPresensi || "";
 
         attendanceList.push({
           idPresensi: String(row[COL_PRESENSI.ID] || ""),
@@ -1214,7 +1221,7 @@ function getAdminDashboardData(filterParams, sessionToken) {
           signature: cleanSig,
           waktu: formatDateTimeString(row[COL_PRESENSI.TIMESTAMP]),
           jarak: Number(row[COL_PRESENSI.JARAK]) || 0,
-          fotoUrl: photoMap[nikStr] || photoMap[cleanNik] || ""
+          fotoUrl: userPhoto
         });
       }
     }
