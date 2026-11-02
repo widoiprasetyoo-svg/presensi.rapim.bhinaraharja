@@ -1919,15 +1919,16 @@
       var initials = getInitials(nama);
       var safeNama = (nama || "Pimpinan").replace(/'/g, "\\'").replace(/"/g, "&quot;");
 
-      var fallbackDiv = '<div class="' + sizeClass + ' rounded-full bg-gradient-to-tr from-sky-400 via-sky-500 to-blue-600 text-white font-bold ' + textClass + ' flex items-center justify-center shrink-0 shadow-sm border border-white/40 select-none">' + initials + '</div>';
+      var initialsBadge = '<div class="' + sizeClass + ' rounded-full bg-gradient-to-tr from-sky-400 via-sky-500 to-blue-600 text-white font-bold ' + textClass + ' flex items-center justify-center shrink-0 shadow-sm border border-white/40 select-none">' + initials + '</div>';
 
       if (photo && (photo.indexOf("http") === 0 || photo.indexOf("data:image/") === 0)) {
-        return '<div class="relative shrink-0 ' + sizeClass + '">' +
-          '<img src="' + photo + '" referrerpolicy="no-referrer" alt="' + safeNama + '" class="' + sizeClass + ' rounded-full object-cover border border-slate-200 bg-slate-100 shrink-0 shadow-xs" onerror="this.onerror=null; this.parentElement.innerHTML=\'' + fallbackDiv.replace(/'/g, "\\'") + '\';">' +
+        return '<div class="relative shrink-0 ' + sizeClass + ' flex items-center justify-center">' +
+          initialsBadge +
+          '<img src="' + photo + '" referrerpolicy="no-referrer" alt="' + safeNama + '" class="absolute inset-0 ' + sizeClass + ' rounded-full object-cover border border-slate-200 bg-slate-100 shrink-0 shadow-xs" onerror="this.style.display=\'none\';">' +
           '</div>';
       }
 
-      return fallbackDiv;
+      return initialsBadge;
     }
 
     /**
