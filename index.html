@@ -1528,7 +1528,7 @@
         </button>
       </div>
       <div class="w-full h-48 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-center p-3">
-        <img id="sigModalImage" src="" alt="Tanda Tangan" class="max-h-full max-w-full object-contain">
+        <img id="sigModalImage" src="" alt="Tanda Tangan" referrerpolicy="no-referrer" class="max-h-full max-w-full object-contain">
       </div>
       <p class="text-[11px] text-slate-400 mt-3" id="sigModalTime">-</p>
     </div>
@@ -1895,6 +1895,39 @@
         return false;
       }
       return true;
+    }
+
+    /**
+     * Helper: Menghasilkan 2 Karakter Inisial Nama
+     */
+    function getInitials(nama) {
+      if (!nama || typeof nama !== 'string') return "P";
+      var clean = nama.trim().replace(/^Dr\.\s*|^H\.\s*|^Hj\.\s*|^Ir\.\s*|^Drs\.\s*/i, '');
+      var parts = clean.split(/\s+/).filter(function (s) { return s.length > 0; });
+      if (parts.length === 0) return "P";
+      if (parts.length === 1) return parts[0].substring(0, Math.min(2, parts[0].length)).toUpperCase();
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+
+    /**
+     * Helper: Render Smart Avatar Multi-Tier (Foto Profil -> Foto Selfie Presensi -> Inisial Modern)
+     */
+    function renderAvatarMarkup(nama, fotoUrl, fotoPresensi, sizeClass, textClass) {
+      sizeClass = sizeClass || 'w-8 h-8';
+      textClass = textClass || 'text-xs';
+      var photo = (fotoUrl || fotoPresensi || "").trim();
+      var initials = getInitials(nama);
+      var safeNama = (nama || "Pimpinan").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+
+      var fallbackDiv = '<div class="' + sizeClass + ' rounded-full bg-gradient-to-tr from-sky-400 via-sky-500 to-blue-600 text-white font-bold ' + textClass + ' flex items-center justify-center shrink-0 shadow-sm border border-white/40 select-none">' + initials + '</div>';
+
+      if (photo && (photo.indexOf("http") === 0 || photo.indexOf("data:image/") === 0)) {
+        return '<div class="relative shrink-0 ' + sizeClass + '">' +
+          '<img src="' + photo + '" referrerpolicy="no-referrer" alt="' + safeNama + '" class="' + sizeClass + ' rounded-full object-cover border border-slate-200 bg-slate-100 shrink-0 shadow-xs" onerror="this.onerror=null; this.parentElement.innerHTML=\'' + fallbackDiv.replace(/'/g, "\\'") + '\';">' +
+          '</div>';
+      }
+
+      return fallbackDiv;
     }
 
     /**
@@ -2348,11 +2381,28 @@
     function renderPimpinanHeader() {
       var u = APP_STATE.currentUser;
       if (!u) return;
-      document.getElementById('userAvatarHeader').src = u.foto || 'https://via.placeholder.com/80';
+
+      var elHeaderAvatar = document.getElementById('userAvatarHeader');
+      if (elHeaderAvatar) {
+        elHeaderAvatar.setAttribute('referrerpolicy', 'no-referrer');
+        if (u.foto && u.foto.trim() && (u.foto.startsWith('http') || u.foto.startsWith('data:image/'))) {
+          elHeaderAvatar.src = u.foto.trim();
+        } else {
+          elHeaderAvatar.src = DEFAULT_APP_LOGO;
+        }
+      }
       document.getElementById('userNameHeader').textContent = u.nama;
       document.getElementById('userJabatanHeader').textContent = u.jabatan;
 
-      document.getElementById('pimpinanCardPhoto').src = u.foto || 'https://via.placeholder.com/100';
+      var elCardPhoto = document.getElementById('pimpinanCardPhoto');
+      if (elCardPhoto) {
+        elCardPhoto.setAttribute('referrerpolicy', 'no-referrer');
+        if (u.foto && u.foto.trim() && (u.foto.startsWith('http') || u.foto.startsWith('data:image/'))) {
+          elCardPhoto.src = u.foto.trim();
+        } else {
+          elCardPhoto.src = DEFAULT_APP_LOGO;
+        }
+      }
       document.getElementById('pimpinanCardName').textContent = u.nama;
       document.getElementById('pimpinanCardNik').textContent = 'NIK: ' + u.nik;
       document.getElementById('pimpinanCardJabatan').textContent = u.jabatan;
@@ -3685,7 +3735,7 @@
         html += '<tr class="hover:bg-slate-50 transition">' +
           '<td class="py-3 px-4">' +
           '<div class="flex items-center space-x-3">' +
-          '<img src="' + (row.fotoUrl || 'https://via.placeholder.com/60') + '" class="w-8 h-8 rounded-full object-cover border border-slate-200 bg-slate-100 shrink-0">' +
+          renderAvatarMarkup(row.nama, row.fotoUrl, row.fotoPresensi, 'w-8 h-8', 'text-xs') +
           '<div>' +
           '<div class="font-bold text-slate-900 leading-tight">' + row.nama + '</div>' +
           '<div class="text-[11px] font-mono text-slate-400">NIK: ' + row.nik + '</div>' +
@@ -3924,9 +3974,7 @@
         var tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50/80 transition";
 
-        var fotoHtml = p.foto ?
-          '<img src="' + p.foto + '" class="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0" alt="Foto">' :
-          '<div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs shrink-0">' + (p.nama ? p.nama.charAt(0) : 'P') + '</div>';
+        var fotoHtml = renderAvatarMarkup(p.nama, p.foto, null, 'w-8 h-8', 'text-xs');
 
         var isAktif = (p.status || 'Aktif').toLowerCase() === 'aktif';
         var statusBadge =
