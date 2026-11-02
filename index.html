@@ -357,19 +357,11 @@
 
       </div>
 
-      <!-- Footer / API Backend Setting (Discreet) -->
+      <!-- Footer Bersih -->
       <div class="mt-8 text-center">
         <p class="text-[11px] text-slate-400">
           Sistem Presensi Rapat Pimpinan &bull; KSP Bhina Raharja
         </p>
-        <button type="button" onclick="openGasConfigModal()"
-          class="mt-1.5 inline-flex items-center gap-1 text-[11px] text-slate-400 hover:text-blue-600 transition">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-          </svg>
-          <span>Pengaturan API Google Apps Script</span>
-        </button>
       </div>
 
     </div>
@@ -927,18 +919,6 @@
                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <span>Kelola Logo</span>
-          </button>
-
-          <button onclick="openGasConfigModal()"
-            class="px-3.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition flex items-center gap-1.5"
-            title="Pengaturan URL API Google Apps Script untuk Vercel">
-            <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span>API Backend</span>
           </button>
         </div>
       </div>
@@ -1742,24 +1722,20 @@
   <!-- MODAL: LIVE KAMERA SELFIE VERIFIKASI (ANTI-TITIP AKUN) -->
   <!-- ========================================================================= -->
   <div id="modalLiveCameraSelfie"
-    class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-4">
+    class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
     <div
-      class="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-5 shadow-2xl text-center relative overflow-hidden text-white">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-3">
+      class="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-5 text-center shadow-2xl relative overflow-hidden">
+      <div class="flex items-center justify-between mb-3 text-white">
         <div class="flex items-center gap-2">
           <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-200">Kamera Selfie Langsung</h3>
+          <span class="text-xs font-bold uppercase tracking-wider">Kamera Selfie Verifikasi</span>
         </div>
-        <button type="button" onclick="closeLiveCameraSelfie()" class="text-slate-400 hover:text-white p-1">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <button type="button" onclick="closeLiveCameraSelfie()"
+          class="text-slate-400 hover:text-white text-sm font-bold">✕</button>
       </div>
 
-      <!-- Viewfinder Video Lingkaran -->
       <div
-        class="relative w-60 h-60 mx-auto rounded-full overflow-hidden border-4 border-blue-500 shadow-2xl bg-black flex items-center justify-center my-3">
+        class="relative mx-auto w-56 h-56 rounded-full overflow-hidden border-4 border-blue-500/80 shadow-inner bg-black mb-3">
         <video id="liveSelfieVideo" autoplay playsinline muted
           class="w-full h-full object-cover transform -scale-x-100"></video>
         <div class="absolute inset-0 pointer-events-none rounded-full border border-white/20"></div>
@@ -1786,110 +1762,16 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL: PENGATURAN KONEKSI BACKEND GOOGLE APPS SCRIPT (VERCEL DEPLOYMENT) -->
-  <!-- ========================================================================= -->
-  <div id="modal-gas-config"
-    class="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
-    <div
-      class="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-        <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-            </svg>
-          </div>
-          <div>
-            <h3 class="text-sm font-bold text-slate-800">Koneksi Backend Google Apps Script</h3>
-            <p class="text-[11px] text-slate-400">Hubungkan Frontend Vercel ke Database Google Sheets</p>
-          </div>
-        </div>
-        <button type="button" onclick="closeGasConfigModal()"
-          class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition">✕</button>
-      </div>
-
-      <div class="space-y-3">
-        <p class="text-xs text-slate-600 leading-relaxed">
-          Masukkan URL Web App Google Apps Script Anda (yang berakhiran <code
-            class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 font-mono text-[11px]">/exec</code>) agar aplikasi
-          dapat membaca dan menyimpan data absensi ke Google Sheets:
-        </p>
-
-        <div>
-          <label class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">URL Deployment Web
-            App GAS</label>
-          <input type="url" id="gasApiUrlInput" placeholder="https://script.google.com/macros/s/AKfycb.../exec"
-            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs text-slate-700 bg-slate-50/50">
-        </div>
-
-        <div class="p-3 bg-amber-50 rounded-2xl border border-amber-200/60 flex items-start gap-2.5">
-          <svg class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p class="text-[11px] text-amber-700 leading-relaxed">
-            <strong>Tips:</strong> Di Google Apps Script, klik <strong>Deploy</strong> &rarr; <strong>New
-              Deployment</strong> &rarr; Pilih jenis <strong>Web App</strong> (Execute as: <em>Me</em>, Access:
-            <em>Anyone</em>), lalu salin URL-nya ke sini.
-          </p>
-        </div>
-      </div>
-
-      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-        <button type="button" onclick="closeGasConfigModal()"
-          class="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 rounded-xl transition">Batal</button>
-        <button type="button" onclick="saveGasConfigUrl()"
-          class="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition flex items-center gap-1.5">
-          <span>Simpan & Hubungkan</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================================================= -->
   <!-- LOGIKA JAVASCRIPT & STATE MANAGEMENT -->
   <!-- ========================================================================= -->
   <script>
     /* =========================================================================
      * KONFIGURASI BACKEND API (VERCEL <-> GOOGLE APPS SCRIPT REST API)
+     * URL Resmi Terkunci Permanen untuk Produksi
      * ========================================================================= */
     var GAS_CONFIG = {
-      // Masukkan URL Deployment Google Apps Script (/exec) Anda di bawah ini jika ingin di-hardcode:
-      apiUrl: window.GAS_API_URL || localStorage.getItem('RAPIM_GAS_API_URL') || ""
+      apiUrl: "https://script.google.com/macros/s/AKfycby41kr7X8l67Lh7HEhnbfSoxZWS7B38-O6Gat5qRj72CwobIO2W2nhsXqnr1lU0vaZi/exec"
     };
-
-    function openGasConfigModal() {
-      var modal = document.getElementById('modal-gas-config');
-      var input = document.getElementById('gasApiUrlInput');
-      if (input) input.value = GAS_CONFIG.apiUrl || localStorage.getItem('RAPIM_GAS_API_URL') || "";
-      if (modal) modal.classList.remove('hidden');
-    }
-
-    function closeGasConfigModal() {
-      var modal = document.getElementById('modal-gas-config');
-      if (modal) modal.classList.add('hidden');
-    }
-
-    function saveGasConfigUrl() {
-      var input = document.getElementById('gasApiUrlInput');
-      var val = (input ? input.value : "").trim();
-      if (!val) {
-        showToast("Mohon masukkan URL Google Apps Script yang valid.", "warning");
-        return;
-      }
-      if (!val.startsWith("https://script.google.com/macros/s/")) {
-        showToast("Format URL tidak valid. URL harus diawali dengan https://script.google.com/macros/s/", "warning");
-        return;
-      }
-      localStorage.setItem('RAPIM_GAS_API_URL', val);
-      GAS_CONFIG.apiUrl = val;
-      closeGasConfigModal();
-      showToast("URL Backend tersimpan! Menghubungkan ke Google Sheets...", "success");
-      loadInitialAppData();
-      var banner = document.getElementById('gasApiAlertBanner');
-      if (banner) banner.remove();
-    }
 
     /**
      * Helper Eksternal HTTP Request ke Google Apps Script Web App
@@ -1897,19 +1779,7 @@
     async function executeGasApi(action, args) {
       var targetUrl = (GAS_CONFIG.apiUrl || "").trim();
 
-      // Cek apakah ada parameter ?api=... di URL browser
       if (!targetUrl) {
-        var urlParams = new URLSearchParams(window.location.search);
-        var paramApi = urlParams.get('api');
-        if (paramApi) {
-          targetUrl = paramApi;
-          localStorage.setItem('RAPIM_GAS_API_URL', targetUrl);
-          GAS_CONFIG.apiUrl = targetUrl;
-        }
-      }
-
-      if (!targetUrl) {
-        openGasConfigModal();
         throw new Error("URL Google Apps Script belum dikonfigurasi.");
       }
 
