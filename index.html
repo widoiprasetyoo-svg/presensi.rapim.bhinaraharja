@@ -2896,8 +2896,151 @@
       startGPSTracking();
     }
 
+    /**
+     * Helper: Parse Tanggal dan Waktu Agenda Rapim
+     */
+    function parseAgendaDateTime(tglStr, timeStr, defaultHour) {
+      if (!tglStr) return null;
+      var now = new Date();
+      var year = now.getFullYear();
+      var month = now.getMonth();
+      var day = now.getDate();
+
+      var t = String(tglStr).trim();
+
+      // Format ISO: YYYY-MM-DD
+      var matchIso = t.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+      if (matchIso) {
+        year = parseInt(matchIso[1], 10);
+        month = parseInt(matchIso[2], 10) - 1;
+        day = parseInt(matchIso[3], 10);
+      } else {
+        // Format DD MMM YYYY atau DD-MM-YYYY (Contoh: 07 Nov 2026 atau 07/11/2026)
+        var matchDmy = t.match(/^(\d{1,2})[\s\-\/]+([a-zA-Z0-9]+)[\s\-\/]+(\d{4})/);
+        if (matchDmy) {
+          day = parseInt(matchDmy[1], 10);
+          year = parseInt(matchDmy[3], 10);
+          var mToken = matchDmy[2].toLowerCase();
+          var monthMap = {
+            'jan': 0, 'januari': 0, 'january': 0,
+            'feb': 1, 'februari': 1, 'february': 1,
+            'mar': 2, 'maret': 2, 'march': 2,
+            'apr': 3, 'april': 3,
+            'mei': 4, 'may': 4,
+            'jun': 5, 'juni': 5, 'june': 5,
+            'jul': 6, 'juli': 6, 'july': 6,
+            'agu': 7, 'agt': 7, 'agustus': 7, 'aug': 7, 'august': 7,
+            'sep': 8, 'september': 8,
+            'okt': 9, 'oktober': 9, 'oct': 9, 'october': 9,
+            'nov': 10, 'nop': 10, 'november': 10,
+            'des': 11, 'desember': 11, 'dec': 11, 'december': 11
+          };
+          if (monthMap[mToken] !== undefined) {
+            month = monthMap[mToken];
+          } else if (!isNaN(parseInt(mToken, 10))) {
+            month = parseInt(mToken, 10) - 1;
+          }
+        }
+      }
+
+      var hour = defaultHour !== undefined ? defaultHour : 8;
+      var minute = 0;
+      if (timeStr) {
+        var matchTime = String(timeStr).match(/(\d{1,2})[:.](\d{2})/);
+        if (matchTime) {
+          hour = parseInt(matchTime[1], 10);
+          minute = parseInt(matchTime[2], 10);
+        }
+      }
+
+      var dt = new Date(year, month, day, hour, minute, 0, 0);
+      return isNaN(dt.getTime()) ? null : dt;
+    }
+
+    /**
+     * Helper: Evaluasi Jendela Waktu Jadwal Rapat (Smart Time-Window Gate)
+     * Mengunci presensi fisik sebelum hari-H/jam rapat, namun membebaskan izin kapan saja
+     */
+    function checkAgendaTimeWindow(agenda) {
+      if (!agenda || !agenda.tanggal) {
+        return { isOpen: true, isBefore: false, isAfter: false, message: "" };
+      }
+
+      var startDt = parseAgendaDateTime(agenda.rawTanggal || agenda.tanggal, agenda.jamMulai, 8);
+      var endDt = parseAgendaDateTime(agenda.rawTanggal || agenda.tanggal, agenda.jamSelesai, 17);
+
+      if (!startDt || !endDt) {
+        return { isOpen: true, isBefore: false, isAfter: false, message: "" };
+      }
+
+      // Toleransi kedatangan awal: 30 menit sebelum jam mulai rapat
+      var earlyArrivalToleranceMs = 30 * 60 * 1000;
+      var openDt = new Date(startDt.getTime() - earlyArrivalToleranceMs);
+      var now = new Date();
+
+      if (now < openDt) {
+        var jamMulaiStr = agenda.jamMulai || "08:00 WIB";
+        var tglStr = agenda.tanggal || "hari pelaksanaan";
+        return {
+          isOpen: false,
+          isBefore: true,
+          isAfter: false,
+          message: "Presensi Hadir Langsung baru dibuka pada " + tglStr + " mulai pukul " + jamMulaiStr + " (Toleransi 30 menit sebelum rapat)."
+        };
+      }
+
+      if (now > endDt) {
+        var jamSelesaiStr = agenda.jamSelesai || "17:00 WIB";
+        var tglStr = agenda.tanggal || "hari pelaksanaan";
+        return {
+          isOpen: false,
+          isBefore: false,
+          isAfter: true,
+          message: "Sesi presensi untuk agenda rapat ini telah berakhir pada " + tglStr + " pukul " + jamSelesaiStr + "."
+        };
+      }
+
+      return {
+        isOpen: true,
+        isBefore: false,
+        isAfter: false,
+        message: "Sesi rapat sedang berlangsung."
+      };
+    }
+
     function evalGeofenceDistance() {
-      if (!APP_STATE.userGPS.ready || !APP_STATE.selectedAgenda) return;
+      if (!APP_STATE.selectedAgenda) return;
+
+      var currentStatus = getSelectedStatusKehadiran();
+
+      // 1. JALUR KHUSUS: STATUS IZIN RAPAT
+      // Permohonan izin BEBAS waktu (bisa diajukan mendahului rapat) dan BEBAS radius GPS
+      if (currentStatus === "Izin" || currentStatus === "Izin Rapat") {
+        updateRadarUI("bypass", "Pengajuan Izin Rapat Aktif: Anda dapat mengajukan permohonan izin mendahului sesi rapat tanpa batasan waktu atau lokasi.");
+        enableSubmitButton(true);
+        return;
+      }
+
+      // 2. JALUR STATUS HADIR LANGSUNG (DAN DIWAKILKAN)
+      // Wajib memeriksa jendela waktu jadwal rapat (Time-Window Gate)
+      var timeGate = checkAgendaTimeWindow(APP_STATE.selectedAgenda);
+      if (!timeGate.isOpen) {
+        if (timeGate.isBefore) {
+          updateRadarUI("warning", "⏳ " + timeGate.message);
+          enableSubmitButton(false, "Presensi Hadir dibuka pada " + APP_STATE.selectedAgenda.tanggal + " (" + (APP_STATE.selectedAgenda.jamMulai || "") + ")");
+        } else {
+          updateRadarUI("danger", "🔒 " + timeGate.message);
+          enableSubmitButton(false, "Sesi Presensi Rapat Telah Berakhir");
+        }
+        return;
+      }
+
+      // 3. JIKA JADWAL RAPAT SUDAH DIBUKA: Validasi GPS Geofencing (Radius Maksimal 25 Meter)
+      if (!APP_STATE.userGPS.ready) {
+        updateRadarUI("loading", "Menunggu deteksi lokasi GPS untuk verifikasi kehadiran di ruangan...");
+        enableSubmitButton(false, "Menunggu deteksi lokasi GPS...");
+        return;
+      }
 
       var venueLat = APP_STATE.selectedAgenda.latitude;
       var venueLon = APP_STATE.selectedAgenda.longitude;
@@ -2911,13 +3054,6 @@
       );
 
       APP_STATE.userGPS.distance = dist;
-      var currentStatus = getSelectedStatusKehadiran();
-
-      if (currentStatus === "Izin" || currentStatus === "Izin Rapat") {
-        updateRadarUI("bypass", "Status Izin Rapat (Bebas Lokasi / Pengecualian Kunci Radius)");
-        enableSubmitButton(true);
-        return;
-      }
 
       if (dist <= maxRadius) {
         updateRadarUI("safe", "Jarak Anda: " + dist.toFixed(1) + " meter dari Ruang Rapat (Dalam Batas " + maxRadius + "m)");
@@ -2940,17 +3076,23 @@
         badge.className = "text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-200 text-emerald-800";
         badge.textContent = "Dalam Radius";
         title.textContent = message;
+      } else if (type === "warning") {
+        container.className = "mt-5 p-4 rounded-2xl border border-amber-200 bg-amber-50/80 transition-all";
+        iconBox.className = "w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0";
+        badge.className = "text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-200 text-amber-800";
+        badge.textContent = "Belum Waktunya";
+        title.textContent = message;
       } else if (type === "danger") {
         container.className = "mt-5 p-4 rounded-2xl border border-rose-200 bg-rose-50/70 transition-all";
         iconBox.className = "w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0";
         badge.className = "text-[11px] font-semibold px-2 py-0.5 rounded-full bg-rose-200 text-rose-800";
-        badge.textContent = "Terkunci (> 25m)";
+        badge.textContent = "Terkunci";
         title.textContent = message;
       } else if (type === "bypass") {
         container.className = "mt-5 p-4 rounded-2xl border border-blue-200 bg-blue-50/70 transition-all";
         iconBox.className = "w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0";
         badge.className = "text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-200 text-blue-800";
-        badge.textContent = "Status Izin";
+        badge.textContent = "Pengajuan Izin";
         title.textContent = message;
       } else {
         container.className = "mt-5 p-4 rounded-2xl border border-slate-200 bg-slate-50 transition-all";
@@ -3496,6 +3638,12 @@
 
       // Validasi Khusus Hadir Langsung
       if (status === "Hadir Langsung") {
+        var timeGate = checkAgendaTimeWindow(APP_STATE.selectedAgenda);
+        if (!timeGate.isOpen) {
+          showToast(timeGate.message, "warning");
+          return;
+        }
+
         if (!APP_STATE.userGPS.ready) {
           showToast("Akses lokasi GPS belum siap. Tekan 'Cek Ulang Lokasi'.", "error");
           return;
