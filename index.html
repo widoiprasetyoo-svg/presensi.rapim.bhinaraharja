@@ -1850,8 +1850,12 @@
               var args = Array.prototype.slice.call(arguments);
               executeGasApi(propKey, args)
                 .then(function (res) {
-                  if (typeof onSuccess === 'function') {
-                    onSuccess(res);
+                  try {
+                    if (typeof onSuccess === 'function') {
+                      onSuccess(res);
+                    }
+                  } catch (clientErr) {
+                    console.error("UI Execution Error in onSuccess [" + propKey + "]:", clientErr);
                   }
                 })
                 .catch(function (err) {
@@ -1869,13 +1873,66 @@
 
       window.google.script.run = createBridgeRunner(null, null);
     })();
+
+    /**
+     * UNIVERSAL SAFE STORAGE WRAPPER (In-Memory Fallback)
+     * Menjamin kelancaran 100% pada peramban internal (WhatsApp In-App Browser, WebView)
+     * dan mode penyamaran (Safari/Chrome Private Browsing) yang memblokir localStorage/sessionStorage.
+     */
+    var SafeStorage = (function () {
+      var _mem = {};
+      return {
+        getItem: function (key) {
+          try {
+            if (typeof window !== 'undefined' && window.sessionStorage) {
+              var sVal = window.sessionStorage.getItem(key);
+              if (sVal !== null && sVal !== undefined) return sVal;
+            }
+          } catch (e) { }
+          try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+              var lVal = window.localStorage.getItem(key);
+              if (lVal !== null && lVal !== undefined) return lVal;
+            }
+          } catch (e) { }
+          return _mem[key] !== undefined ? _mem[key] : null;
+        },
+        setItem: function (key, val) {
+          _mem[key] = String(val);
+          try {
+            if (typeof window !== 'undefined' && window.sessionStorage) {
+              window.sessionStorage.setItem(key, String(val));
+            }
+          } catch (e) { }
+          try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+              window.localStorage.setItem(key, String(val));
+            }
+          } catch (e) { }
+        },
+        removeItem: function (key) {
+          delete _mem[key];
+          try {
+            if (typeof window !== 'undefined' && window.sessionStorage) {
+              window.sessionStorage.removeItem(key);
+            }
+          } catch (e) { }
+          try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+              window.localStorage.removeItem(key);
+            }
+          } catch (e) { }
+        }
+      };
+    })();
+
     var DEFAULT_APP_LOGO = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4IiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0icEdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMWUzYThhIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iNTAlIiBzdG9wLWNvbG9yPSIjMjU2M2ViIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzAyODRjNyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iY0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMzRkMzk5Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iIzA1OTY2OSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxmaWx0ZXIgaWQ9InBTaGFkb3ciIHg9Ii0xMCUiIHk9Ii0xMCUiIHdpZHRoPSIxMjAlIiBoZWlnaHQ9IjEyMCUiPgogICAgICA8ZmVEcm9wU2hhZG93IGR4PSIwIiBkeT0iMyIgc3RkRGV2aWF0aW9uPSIzIiBmbG9vZC1jb2xvcj0iIzBmMTcyYSIgZmxvb2Qtb3BhY2l0eT0iMC4zNSIvPgogICAgPC9maWx0ZXI+CiAgPC9kZWZzPgogIDxyZWN0IHg9IjYiIHk9IjYiIHdpZHRoPSIxMTYiIGhlaWdodD0iMTE2IiByeD0iMjgiIGZpbGw9InVybCgjcEdyYWQpIi8+CiAgPHJlY3QgeD0iNyIgeT0iNyIgd2lkdGg9IjExNCIgaGVpZ2h0PSIxMTQiIHJ4PSIyNyIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOTNjNWZkIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1vcGFjaXR5PSIwLjM1Ii8+CiAgPGcgZmlsdGVyPSJ1cmwoI3BTaGFkb3cpIj4KICAgIDxyZWN0IHg9IjI2IiB5PSIzMiIgd2lkdGg9Ijc2IiBoZWlnaHQ9Ijc0IiByeD0iMTQiIGZpbGw9IiNmZmZmZmYiLz4KICAgIDxwYXRoIGQ9Ik0yNiA0NCBDMjYgMzYuMjY4IDMyLjI2OCAzMiA0MCAzMiBMODggMzIgQzk1LjczMiAzMiAxMDIgMzYuMjY4IDEwMiA0NCBMMTAyIDQ4IEwyNiA0OCBaIiBmaWxsPSIjZGJlYWZlIi8+CiAgICA8cmVjdCB4PSIyNiIgeT0iNDciIHdpZHRoPSI3NiIgaGVpZ2h0PSIyLjUiIGZpbGw9IiMzYjgyZjYiLz4KICAgIDxyZWN0IHg9IjQwIiB5PSIyMyIgd2lkdGg9IjciIGhlaWdodD0iMTUiIHJ4PSIzLjUiIGZpbGw9IiMxZTNhOGEiLz4KICAgIDxyZWN0IHg9IjgxIiB5PSIyMyIgd2lkdGg9IjciIGhlaWdodD0iMTUiIHJ4PSIzLjUiIGZpbGw9IiMxZTNhOGEiLz4KICAgIDxyZWN0IHg9IjM1IiB5PSI1OCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjMuNSIgcng9IjEuNzUiIGZpbGw9IiM5NGEzYjgiLz4KICAgIDxyZWN0IHg9IjM1IiB5PSI2NiIgd2lkdGg9IjE2IiBoZWlnaHQ9IjMuNSIgcng9IjEuNzUiIGZpbGw9IiNjYmQ1ZTEiLz4KICAgIDxyZWN0IHg9IjM1IiB5PSI3NCIgd2lkdGg9IjE5IiBoZWlnaHQ9IjMuNSIgcng9IjEuNzUiIGZpbGw9IiNlMmU4ZjAiLz4KICAgIDxjaXJjbGUgY3g9Ijg0IiBjeT0iNjIiIHI9IjgiIGZpbGw9IiNmOGZhZmMiIHN0cm9rZT0iIzk0YTNiOCIgc3Ryb2tlLXdpZHRoPSIxLjgiLz4KICAgIDxwYXRoIGQ9Ik04NCA1Ny41IEw4NCA2MiBMODcgNjIiIHN0cm9rZT0iIzQ3NTU2OSIgc3Ryb2tlLXdpZHRoPSIxLjgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogICAgPGNpcmNsZSBjeD0iNzciIGN5PSI4NCIgcj0iMTciIGZpbGw9InVybCgjY0dyYWQpIi8+CiAgICA8Y2lyY2xlIGN4PSI3NyIgY3k9Ijg0IiByPSIxNC41IiBmaWxsPSJub25lIiBzdHJva2U9IiNhN2YzZDAiIHN0cm9rZS13aWR0aD0iMS4yIiBzdHJva2Utb3BhY2l0eT0iMC43Ii8+CiAgICA8cGF0aCBkPSJNNjkuNSA4NCBMNzQuNSA4OSBMODQuNSA3OSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjMuMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPC9nPgo8L3N2Zz4=';
 
-    var APP_STATE = {
+    var APP_STATE = window.APP_STATE || {
       viewMode: 'auth', // 'auth' | 'pimpinan' | 'admin'
       authTab: 'login', // 'login' | 'register'
       pimpinanTab: 'presensi', // 'presensi' | 'riwayat'
-      sessionToken: sessionStorage.getItem('rapim_session_token') || localStorage.getItem('rapim_session_token') || null,
+      sessionToken: SafeStorage.getItem('rapim_session_token') || null,
       currentUser: null,
       currentAdmin: null,
       isAdmin: false,
@@ -1889,6 +1946,7 @@
       suratIzinFileName: "",
       sigCanvasModified: false
     };
+    window.APP_STATE = APP_STATE;
 
     /**
      * Helper Keamanan: Validasi Respon Sesi Server-Side
@@ -1958,7 +2016,7 @@
 
     window.addEventListener('DOMContentLoaded', function () {
       // Pulihkan logo dari cache lokal atau gunakan logo resmi bawaan KSP Bhina Raharja
-      var cachedLogo = localStorage.getItem('APP_LOGO_URL');
+      var cachedLogo = SafeStorage.getItem('APP_LOGO_URL');
       if (cachedLogo && cachedLogo.trim()) {
         updateAppLogo(cachedLogo.trim());
       } else {
@@ -1991,7 +2049,7 @@
                 document.getElementById('pimpinanHeaderInstansi').textContent = instText;
               }
               if (res.settings.logoUrl) {
-                localStorage.setItem('APP_LOGO_URL', res.settings.logoUrl);
+                SafeStorage.setItem('APP_LOGO_URL', res.settings.logoUrl);
                 updateAppLogo(res.settings.logoUrl);
               }
             }
@@ -2071,7 +2129,7 @@
       }
       var statusText = document.getElementById('manageLogoStatusText');
 
-      localStorage.setItem('APP_LOGO_URL', effectiveLogo);
+      SafeStorage.setItem('APP_LOGO_URL', effectiveLogo);
 
       logoPairs.forEach(function (pair) {
         var imgEl = document.getElementById(pair.img);
@@ -2243,9 +2301,9 @@
           text.textContent = "Login Presensi";
 
           if (res && res.success) {
-            APP_STATE.sessionToken = res.sessionToken;
-            sessionStorage.setItem('rapim_session_token', res.sessionToken);
-            localStorage.setItem('rapim_session_token', res.sessionToken);
+            if (!window.APP_STATE) window.APP_STATE = APP_STATE;
+            APP_STATE.sessionToken = res.sessionToken || null;
+            SafeStorage.setItem('rapim_session_token', res.sessionToken || '');
 
             // Jika akun baru saja direset oleh Administrator, wajibkan ganti password baru!
             if (res.mustResetPassword) {
@@ -2260,7 +2318,7 @@
             }
 
             APP_STATE.currentUser = res.pimpinan;
-            localStorage.setItem('RAPIM_USER', JSON.stringify(res.pimpinan));
+            SafeStorage.setItem('RAPIM_USER', JSON.stringify(res.pimpinan));
             updateAppView();
             refreshPimpinanAgendas();
             showToast("Selamat datang, " + res.pimpinan.nama + "!", "success");
@@ -2318,8 +2376,9 @@
             }
             var pimpinan = res.pimpinan || PENDING_FORCE_RESET_USER;
             PENDING_FORCE_RESET_USER = null;
+            if (!window.APP_STATE) window.APP_STATE = APP_STATE;
             APP_STATE.currentUser = pimpinan;
-            localStorage.setItem('RAPIM_USER', JSON.stringify(pimpinan));
+            SafeStorage.setItem('RAPIM_USER', JSON.stringify(pimpinan));
             updateAppView();
             showToast("Kata sandi berhasil diperbarui! Selamat datang, " + pimpinan.nama + "!", "success");
           } else {
@@ -2443,30 +2502,29 @@
       APP_STATE.currentUser = null;
       APP_STATE.isAdmin = false;
       APP_STATE.currentAdmin = null;
-      localStorage.removeItem('RAPIM_USER');
-      localStorage.removeItem('RAPIM_ADMIN');
-      sessionStorage.removeItem('rapim_session_token');
-      localStorage.removeItem('rapim_session_token');
+      SafeStorage.removeItem('RAPIM_USER');
+      SafeStorage.removeItem('RAPIM_ADMIN');
+      SafeStorage.removeItem('rapim_session_token');
       updateAppView();
       showToast("Anda telah keluar dari akun.", "info");
     }
 
     function restoreSavedSession() {
       try {
-        var token = sessionStorage.getItem('rapim_session_token') || localStorage.getItem('rapim_session_token');
-        if (token) {
+        var token = SafeStorage.getItem('rapim_session_token');
+        if (token && window.APP_STATE) {
           APP_STATE.sessionToken = token;
         }
-        var savedAdmin = localStorage.getItem('RAPIM_ADMIN');
-        if (savedAdmin && token) {
+        var savedAdmin = SafeStorage.getItem('RAPIM_ADMIN');
+        if (savedAdmin && token && window.APP_STATE) {
           APP_STATE.currentAdmin = JSON.parse(savedAdmin);
           APP_STATE.isAdmin = true;
           renderAdminIdentity();
           updateAppView();
           return;
         }
-        var saved = localStorage.getItem('RAPIM_USER');
-        if (saved && token) {
+        var saved = SafeStorage.getItem('RAPIM_USER');
+        if (saved && token && window.APP_STATE) {
           APP_STATE.currentUser = JSON.parse(saved);
         }
       } catch (e) {
@@ -2499,13 +2557,13 @@
           btn.disabled = false;
           btn.textContent = "Buka Dashboard Administrator";
           if (res && res.success) {
-            APP_STATE.sessionToken = res.sessionToken;
-            sessionStorage.setItem('rapim_session_token', res.sessionToken);
-            localStorage.setItem('rapim_session_token', res.sessionToken);
+            if (!window.APP_STATE) window.APP_STATE = APP_STATE;
+            APP_STATE.sessionToken = res.sessionToken || null;
+            SafeStorage.setItem('rapim_session_token', res.sessionToken || '');
 
             APP_STATE.isAdmin = true;
             APP_STATE.currentAdmin = res.admin || { nama: "Administrator", nik: nik, jabatan: "Administrator" };
-            localStorage.setItem('RAPIM_ADMIN', JSON.stringify(APP_STATE.currentAdmin));
+            SafeStorage.setItem('RAPIM_ADMIN', JSON.stringify(APP_STATE.currentAdmin));
             renderAdminIdentity();
             hideAdminAuthModal();
             updateAppView();
@@ -4349,8 +4407,9 @@
           if (!checkSessionValidity(res)) return;
 
           if (res && res.success) {
+            if (!window.APP_STATE) window.APP_STATE = APP_STATE;
             APP_STATE.currentUser = res.pimpinan;
-            localStorage.setItem('RAPIM_USER', JSON.stringify(res.pimpinan));
+            SafeStorage.setItem('RAPIM_USER', JSON.stringify(res.pimpinan));
             renderPimpinanHeader();
             hideEditProfilPimpinanModal();
             showToast(res.message, "success");
