@@ -1017,7 +1017,7 @@
 
         <!-- Filter Bar -->
         <div
-          class="bg-white p-4 rounded-3xl border border-slate-200/90 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+          class="bg-white p-4 rounded-3xl border border-slate-200/90 shadow-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
           <div>
             <label class="block text-[11px] font-semibold text-slate-600 mb-1">Filter Agenda:</label>
             <select id="adminFilterAgenda" onchange="loadAdminDashboardData()"
@@ -1057,7 +1057,7 @@
           </div>
           <div>
             <label class="block text-[11px] font-semibold text-slate-600 mb-1">Filter Korwil:</label>
-            <select id="adminFilterKorwil" onchange="loadAdminDashboardData()"
+            <select id="adminFilterKorwil" onchange="handleAdminKorwilFilterChange(this.value)"
               class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-2 font-medium">
               <option value="SEMUA">Semua Korwil</option>
             </select>
@@ -1067,6 +1067,16 @@
             <select id="adminFilterCabang" onchange="loadAdminDashboardData()"
               class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-2 font-medium">
               <option value="SEMUA">Semua Cabang</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Filter Unit:</label>
+            <select id="adminFilterUnit" onchange="loadAdminDashboardData()"
+              class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-2 font-medium">
+              <option value="SEMUA">Semua Unit</option>
+              <option value="Mingguan">Mingguan</option>
+              <option value="Bulanan Kantor">Bulanan Kantor</option>
+              <option value="Bulanan Lapangan">Bulanan Lapangan</option>
             </select>
           </div>
           <div>
@@ -3848,7 +3858,8 @@
         bulan: document.getElementById('adminFilterBulan') ? document.getElementById('adminFilterBulan').value : "SEMUA",
         tahun: document.getElementById('adminFilterTahun') ? document.getElementById('adminFilterTahun').value : "SEMUA",
         korwil: document.getElementById('adminFilterKorwil') ? document.getElementById('adminFilterKorwil').value : "SEMUA",
-        cabang: document.getElementById('adminFilterCabang') ? document.getElementById('adminFilterCabang').value : "SEMUA"
+        cabang: document.getElementById('adminFilterCabang') ? document.getElementById('adminFilterCabang').value : "SEMUA",
+        unit: document.getElementById('adminFilterUnit') ? document.getElementById('adminFilterUnit').value : "SEMUA"
       };
 
       var tbody = document.getElementById('adminAttendanceTbody');
@@ -3870,6 +3881,9 @@
 
             if (res.availableYears && Array.isArray(res.availableYears)) {
               updateAdminFilterTahunOptions(res.availableYears);
+            }
+            if (res.availableUnits && Array.isArray(res.availableUnits)) {
+              updateAdminFilterUnitOptions(res.availableUnits);
             }
 
             renderAdminAttendanceTable(APP_STATE.rawAttendances);
@@ -3897,6 +3911,27 @@
         opt.value = years[i];
         opt.textContent = years[i];
         if (years[i] === curVal) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    }
+
+    function updateAdminFilterUnitOptions(units) {
+      var sel = document.getElementById('adminFilterUnit');
+      if (!sel) return;
+      var curVal = sel.value;
+      var defaultUnits = ["Mingguan", "Bulanan Kantor", "Bulanan Lapangan"];
+      var combined = defaultUnits.slice();
+      for (var i = 0; i < units.length; i++) {
+        if (units[i] && combined.indexOf(units[i]) === -1) {
+          combined.push(units[i]);
+        }
+      }
+      sel.innerHTML = '<option value="SEMUA">Semua Unit</option>';
+      for (var j = 0; j < combined.length; j++) {
+        var opt = document.createElement('option');
+        opt.value = combined[j];
+        opt.textContent = combined[j];
+        if (combined[j] === curVal) opt.selected = true;
         sel.appendChild(opt);
       }
     }
@@ -3985,9 +4020,12 @@
     }
 
     function filterAdminTableLocally() {
-      var query = document.getElementById('adminSearchInput').value.toLowerCase();
+      var query = (document.getElementById('adminSearchInput').value || '').toLowerCase().trim();
+      var selectedUnit = document.getElementById('adminFilterUnit') ? document.getElementById('adminFilterUnit').value : "SEMUA";
       var filtered = APP_STATE.rawAttendances.filter(function (item) {
-        return item.nama.toLowerCase().indexOf(query) !== -1 || item.nik.toLowerCase().indexOf(query) !== -1;
+        var matchQuery = !query || item.nama.toLowerCase().indexOf(query) !== -1 || item.nik.toLowerCase().indexOf(query) !== -1;
+        var matchUnit = (selectedUnit === "SEMUA") || (item.unit === selectedUnit);
+        return matchQuery && matchUnit;
       });
       renderAdminAttendanceTable(filtered);
     }
@@ -4722,6 +4760,45 @@
         if (kw === curVal) opt.selected = true;
         filterKw.appendChild(opt);
       }
+      populateAdminCabangOptions(filterKw.value);
+    }
+
+    function populateAdminCabangOptions(korwil) {
+      var selCabang = document.getElementById('adminFilterCabang');
+      if (!selCabang) return;
+      var curCabang = selCabang.value;
+      selCabang.innerHTML = '<option value="SEMUA">Semua Cabang</option>';
+      if (korwil && korwil !== "SEMUA" && DATA_KORWIL_CABANG && DATA_KORWIL_CABANG[korwil]) {
+        var list = DATA_KORWIL_CABANG[korwil];
+        for (var c = 0; c < list.length; c++) {
+          var opt = document.createElement('option');
+          opt.value = list[c];
+          opt.textContent = list[c];
+          if (list[c] === curCabang) opt.selected = true;
+          selCabang.appendChild(opt);
+        }
+      } else if (DATA_KORWIL_CABANG) {
+        var allCabang = {};
+        for (var kw in DATA_KORWIL_CABANG) {
+          var cList = DATA_KORWIL_CABANG[kw] || [];
+          for (var k = 0; k < cList.length; k++) {
+            allCabang[cList[k]] = true;
+          }
+        }
+        var sortedCabang = Object.keys(allCabang).sort();
+        for (var s = 0; s < sortedCabang.length; s++) {
+          var sOpt = document.createElement('option');
+          sOpt.value = sortedCabang[s];
+          sOpt.textContent = sortedCabang[s];
+          if (sortedCabang[s] === curCabang) sOpt.selected = true;
+          selCabang.appendChild(sOpt);
+        }
+      }
+    }
+
+    function handleAdminKorwilFilterChange(korwil) {
+      populateAdminCabangOptions(korwil);
+      loadAdminDashboardData();
     }
 
     // ===========================================================================
@@ -4897,6 +4974,7 @@
                 if (s) s({
                   success: true,
                   agendas: mockAgendas,
+                  availableUnits: ["Mingguan", "Bulanan Kantor", "Bulanan Lapangan"],
                   attendances: mockAttendances,
                   metrics: {
                     totalTerdaftar: 12,
