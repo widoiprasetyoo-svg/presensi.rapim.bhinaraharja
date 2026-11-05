@@ -1125,9 +1125,7 @@
             <p class="text-xs text-slate-500">Kelola akun pimpinan resmi dan reset kata sandi jika lupa password.</p>
           </div>
           <div class="flex items-center gap-2">
-            <input type="text" id="adminPimpinanSearchInput" oninput="filterAdminPimpinanTableLocally()"
-              placeholder="Cari Nama / NIK..."
-              class="bg-slate-50 border border-slate-300 text-xs rounded-xl px-3 py-2 w-48 sm:w-64 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <span class="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl" id="totalPimpinanAccountsBadge">0 Akun Terdaftar</span>
             <button onclick="loadAdminPimpinanAccounts()"
               class="p-2 text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
               title="Muat Ulang Data Pimpinan">
@@ -1136,6 +1134,51 @@
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
             </button>
+          </div>
+        </div>
+
+        <!-- Filter Bar Data Akun Pimpinan -->
+        <div
+          class="bg-white p-4 rounded-3xl border border-slate-200/90 shadow-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Filter Korwil:</label>
+            <select id="adminPimFilterKorwil" onchange="handleAdminPimKorwilChange(this.value)"
+              class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-2 font-medium">
+              <option value="SEMUA">Semua Korwil</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Filter Cabang:</label>
+            <select id="adminPimFilterCabang" onchange="filterAdminPimpinanTableLocally()"
+              class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-2 font-medium">
+              <option value="SEMUA">Semua Cabang</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Filter Jabatan:</label>
+            <select id="adminPimFilterJabatan" onchange="filterAdminPimpinanTableLocally()"
+              class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-2 font-medium">
+              <option value="SEMUA">Semua Jabatan</option>
+              <option value="Pimpinan Cabang">Pimpinan Cabang</option>
+              <option value="Wakil Pimpinan">Wakil Pimpinan</option>
+              <option value="Pimpinan Unit">Pimpinan Unit</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Filter Unit:</label>
+            <select id="adminPimFilterUnit" onchange="filterAdminPimpinanTableLocally()"
+              class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-2 font-medium">
+              <option value="SEMUA">Semua Unit</option>
+              <option value="Mingguan">Mingguan</option>
+              <option value="Bulanan Kantor">Bulanan Kantor</option>
+              <option value="Bulanan Lapangan">Bulanan Lapangan</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Cari Nama / NIK:</label>
+            <input type="text" id="adminPimpinanSearchInput" oninput="filterAdminPimpinanTableLocally()"
+              placeholder="Cari Nama / NIK..."
+              class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-2.5 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium">
           </div>
         </div>
 
@@ -2067,6 +2110,7 @@
               DATA_KORWIL_CABANG = res.masterWilayah;
               renderKorwilRegistrationDropdown();
               renderKorwilAdminFilterDropdown();
+              renderAdminPimFilterDropdowns();
             }
             populateAgendaDropdown(APP_STATE.agendas);
           } else {
@@ -4213,7 +4257,8 @@
           }
           if (res && res.success) {
             ADMIN_ACCOUNTS_CACHE = res.accounts || [];
-            renderAdminPimpinanTable(ADMIN_ACCOUNTS_CACHE);
+            renderAdminPimFilterDropdowns();
+            filterAdminPimpinanTableLocally();
           } else {
             tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-rose-500">Gagal memuat akun pimpinan.</td></tr>';
           }
@@ -4229,8 +4274,19 @@
       if (!tbody) return;
       tbody.innerHTML = '';
 
+      var badge = document.getElementById('totalPimpinanAccountsBadge');
+      if (badge) {
+        var totalLoaded = ADMIN_ACCOUNTS_CACHE ? ADMIN_ACCOUNTS_CACHE.length : 0;
+        var shown = list ? list.length : 0;
+        if (shown === totalLoaded) {
+          badge.textContent = totalLoaded + " Akun Terdaftar";
+        } else {
+          badge.textContent = shown + " dari " + totalLoaded + " Akun";
+        }
+      }
+
       if (!list || list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-400">Belum ada akun pimpinan yang terdaftar.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-400">Belum ada akun pimpinan yang sesuai dengan filter.</td></tr>';
         return;
       }
 
@@ -4268,7 +4324,7 @@
           '</td>' +
           '<td class="py-3 px-4">' +
           '<div class="font-semibold text-slate-800">' + p.jabatan + '</div>' +
-          '<div class="text-[11px] text-slate-500">' + p.unit + '</div>' +
+          '<div class="text-[11px] text-slate-500">' + (p.unit || '-') + '</div>' +
           '</td>' +
           '<td class="py-3 px-4 text-slate-500">' + (p.tglDaftar || '-') + '</td>' +
           '<td class="py-3 px-4">' + statusBadge + '</td>' +
@@ -4285,17 +4341,82 @@
 
     function filterAdminPimpinanTableLocally() {
       var query = (document.getElementById('adminPimpinanSearchInput').value || '').toLowerCase().trim();
-      if (!query) {
-        renderAdminPimpinanTable(ADMIN_ACCOUNTS_CACHE);
-        return;
-      }
+      var fKorwil = document.getElementById('adminPimFilterKorwil') ? document.getElementById('adminPimFilterKorwil').value : "SEMUA";
+      var fCabang = document.getElementById('adminPimFilterCabang') ? document.getElementById('adminPimFilterCabang').value : "SEMUA";
+      var fJabatan = document.getElementById('adminPimFilterJabatan') ? document.getElementById('adminPimFilterJabatan').value : "SEMUA";
+      var fUnit = document.getElementById('adminPimFilterUnit') ? document.getElementById('adminPimFilterUnit').value : "SEMUA";
+
       var filtered = ADMIN_ACCOUNTS_CACHE.filter(function (p) {
-        return (p.nama && p.nama.toLowerCase().indexOf(query) !== -1) ||
-          (p.nik && p.nik.toLowerCase().indexOf(query) !== -1) ||
-          (p.korwil && p.korwil.toLowerCase().indexOf(query) !== -1) ||
-          (p.cabang && p.cabang.toLowerCase().indexOf(query) !== -1);
+        var matchKorwil = (fKorwil === "SEMUA") || (p.korwil === fKorwil);
+        var matchCabang = (fCabang === "SEMUA") || (p.cabang === fCabang);
+        var matchJabatan = (fJabatan === "SEMUA") || (p.jabatan === fJabatan);
+        var matchUnit = (fUnit === "SEMUA") || (p.unit === fUnit);
+
+        var matchQuery = true;
+        if (query) {
+          matchQuery = (p.nama && p.nama.toLowerCase().indexOf(query) !== -1) ||
+            (p.nik && p.nik.toLowerCase().indexOf(query) !== -1) ||
+            (p.korwil && p.korwil.toLowerCase().indexOf(query) !== -1) ||
+            (p.cabang && p.cabang.toLowerCase().indexOf(query) !== -1);
+        }
+
+        return matchKorwil && matchCabang && matchJabatan && matchUnit && matchQuery;
       });
+
       renderAdminPimpinanTable(filtered);
+    }
+
+    function renderAdminPimFilterDropdowns() {
+      var filterKw = document.getElementById('adminPimFilterKorwil');
+      if (!filterKw) return;
+      var curVal = filterKw.value;
+      filterKw.innerHTML = '<option value="SEMUA">Semua Korwil</option>';
+      for (var kw in DATA_KORWIL_CABANG) {
+        var opt = document.createElement('option');
+        opt.value = kw;
+        opt.textContent = kw;
+        if (kw === curVal) opt.selected = true;
+        filterKw.appendChild(opt);
+      }
+      populateAdminPimCabangOptions(filterKw.value);
+    }
+
+    function populateAdminPimCabangOptions(korwil) {
+      var selCabang = document.getElementById('adminPimFilterCabang');
+      if (!selCabang) return;
+      var curCabang = selCabang.value;
+      selCabang.innerHTML = '<option value="SEMUA">Semua Cabang</option>';
+      if (korwil && korwil !== "SEMUA" && DATA_KORWIL_CABANG && DATA_KORWIL_CABANG[korwil]) {
+        var list = DATA_KORWIL_CABANG[korwil];
+        for (var c = 0; c < list.length; c++) {
+          var opt = document.createElement('option');
+          opt.value = list[c];
+          opt.textContent = list[c];
+          if (list[c] === curCabang) opt.selected = true;
+          selCabang.appendChild(opt);
+        }
+      } else if (DATA_KORWIL_CABANG) {
+        var allCabang = {};
+        for (var kw in DATA_KORWIL_CABANG) {
+          var cList = DATA_KORWIL_CABANG[kw] || [];
+          for (var k = 0; k < cList.length; k++) {
+            allCabang[cList[k]] = true;
+          }
+        }
+        var sortedCabang = Object.keys(allCabang).sort();
+        for (var s = 0; s < sortedCabang.length; s++) {
+          var sOpt = document.createElement('option');
+          sOpt.value = sortedCabang[s];
+          sOpt.textContent = sortedCabang[s];
+          if (sortedCabang[s] === curCabang) sOpt.selected = true;
+          selCabang.appendChild(sOpt);
+        }
+      }
+    }
+
+    function handleAdminPimKorwilChange(korwil) {
+      populateAdminPimCabangOptions(korwil);
+      filterAdminPimpinanTableLocally();
     }
 
     /**
@@ -4718,6 +4839,7 @@
             DATA_KORWIL_CABANG = res.masterWilayah || TEMP_MANAGE_WILAYAH;
             renderKorwilRegistrationDropdown();
             renderKorwilAdminFilterDropdown();
+            renderAdminPimFilterDropdowns();
             hideManageWilayahModal();
             showToast("Master Wilayah & Cabang berhasil diperbarui di Google Sheets!", "success");
           } else {
