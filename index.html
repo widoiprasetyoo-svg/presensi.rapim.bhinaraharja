@@ -964,7 +964,7 @@
                 <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
                 </svg>
-                <span>Di Ruang Rapat (&le; 25m)</span>
+                <span>Di Lokasi Ruang Rapat</span>
               </span>
             </div>
             <div
@@ -3157,6 +3157,11 @@
       var venueLat = APP_STATE.selectedAgenda.latitude;
       var venueLon = APP_STATE.selectedAgenda.longitude;
       var maxRadius = APP_STATE.selectedAgenda.radius || 25;
+
+      var radarDesc = document.getElementById('radarDesc');
+      if (radarDesc) {
+        radarDesc.textContent = "Sistem sedang mengukur jarak posisi perangkat Anda ke titik ruang rapat (Kunci Radius " + maxRadius + " Meter).";
+      }
 
       var dist = calculateClientHaversine(
         APP_STATE.userGPS.lat,
