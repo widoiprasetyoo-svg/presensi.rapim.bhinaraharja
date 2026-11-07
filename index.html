@@ -238,10 +238,17 @@
           <form onsubmit="handleAuthRegisterSubmit(event)" class="space-y-3.5">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">NIK (Nomor Induk Karyawan) *</label>
-                <input type="text" id="regNik" required oninput="formatNikInput(this)" maxlength="10"
-                  placeholder="Masukan NIK Karyawan..."
-                  class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-xs font-semibold text-slate-700">NIK (Nomor Induk Karyawan) *</label>
+                  <span class="text-[10px] text-slate-400 font-mono" id="regNikCounter">0/8 digit</span>
+                </div>
+                <input type="text" id="regNik" required oninput="handleRegNikInput(this)" maxlength="10"
+                  placeholder="Contoh: 2674.12.12"
+                  class="w-full bg-slate-50 border border-slate-300 text-xs rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono">
+                <p class="text-[10px] text-slate-500 mt-1 flex items-center gap-1" id="regNikHint">
+                  <svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <span>Wajib 8 digit angka: <strong>XXXX.XX.XX</strong> (Contoh: 2674.12.12)</span>
+                </p>
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap *</label>
@@ -2067,6 +2074,34 @@
       el.value = formatted;
     }
 
+    /**
+     * Interaktivitas Live Validasi NIK Pendaftaran (8 Digit Lengkap)
+     */
+    function handleRegNikInput(el) {
+      formatNikInput(el);
+      var raw = (el.value || '').replace(/\D/g, '');
+      var counter = document.getElementById('regNikCounter');
+      var hint = document.getElementById('regNikHint');
+      if (counter) {
+        if (raw.length === 8) {
+          counter.className = "text-[10px] text-emerald-600 font-bold font-mono";
+          counter.textContent = "✓ 8/8 digit lengkap";
+        } else {
+          counter.className = "text-[10px] text-amber-600 font-medium font-mono";
+          counter.textContent = raw.length + "/8 digit";
+        }
+      }
+      if (hint) {
+        if (raw.length === 8) {
+          hint.className = "text-[10px] text-emerald-600 mt-1 flex items-center gap-1 font-medium";
+          hint.innerHTML = '<svg class="w-3 h-3 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg><span>Format NIK valid: ' + el.value + '</span>';
+        } else {
+          hint.className = "text-[10px] text-slate-500 mt-1 flex items-center gap-1";
+          hint.innerHTML = '<svg class="w-3 h-3 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Wajib 8 digit angka: <strong>XXXX.XX.XX</strong> (Contoh: 2674.12.12)</span>';
+        }
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', function () {
       // Pulihkan logo dari cache lokal atau gunakan logo resmi bawaan KSP Bhina Raharja
       var cachedLogo = SafeStorage.getItem('APP_LOGO_URL');
@@ -2450,6 +2485,15 @@
 
     function handleAuthRegisterSubmit(e) {
       e.preventDefault();
+
+      var regNikInput = document.getElementById('regNik');
+      var rawNikDigits = (regNikInput.value || '').replace(/\D/g, '');
+      if (rawNikDigits.length !== 8) {
+        showToast("NIK tidak lengkap (" + rawNikDigits.length + "/8 digit)! Wajib 8 digit angka lengkap dengan format resmi XXXX.XX.XX (Contoh: 2674.12.12).", "warning");
+        regNikInput.focus();
+        return;
+      }
+
       if (!APP_STATE.selfieCompressedBase64) {
         showToast("Wajib mengambil foto selfie verifikasi wajah.", "warning");
         return;
