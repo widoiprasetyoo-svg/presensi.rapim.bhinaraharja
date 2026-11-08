@@ -1095,16 +1095,32 @@
 
         <!-- Live Attendance Table -->
         <div class="bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden" id="printArea">
-          <div class="p-4 border-b border-slate-100 flex items-center justify-between no-print">
+          <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 no-print">
             <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Daftar Kehadiran Pimpinan</h3>
-            <span class="text-xs text-slate-500" id="totalRecordsBadge">0 Catatan Ditemukan</span>
+            <div class="flex items-center gap-2.5 self-end sm:self-auto">
+              <span class="text-xs text-slate-500 font-medium" id="totalRecordsBadge">0 Catatan Ditemukan</span>
+              <div class="h-4 w-px bg-slate-200"></div>
+              <button type="button" onclick="toggleSortAttendance()" id="btnSortAttendance"
+                title="Klik untuk mengubah urutan nama (A-Z) atau waktu terbaru"
+                class="px-2.5 py-1 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 text-slate-700 flex items-center gap-1.5 transition shadow-xs cursor-pointer">
+                <svg class="w-3.5 h-3.5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                </svg>
+                <span id="sortAttendanceLabel">Urutkan: Waktu Terbaru</span>
+              </button>
+            </div>
           </div>
 
           <div class="overflow-x-auto custom-scrollbar">
             <table class="w-full text-left text-xs text-slate-600" id="tableAttendance">
               <thead class="text-[11px] uppercase bg-slate-50 text-slate-500 border-b border-slate-200">
                 <tr>
-                  <th class="py-3 px-4">Pimpinan</th>
+                  <th class="py-3 px-4 cursor-pointer hover:bg-slate-100/80 transition select-none group" onclick="toggleSortAttendance()" title="Klik untuk mengurutkan Nama A-Z / Waktu">
+                    <div class="flex items-center gap-1.5">
+                      <span>Pimpinan</span>
+                      <span id="sortThIcon" class="text-slate-400 group-hover:text-blue-600 text-[11px] font-mono transition">⇅</span>
+                    </div>
+                  </th>
                   <th class="py-3 px-4">Korwil / Cabang</th>
                   <th class="py-3 px-4">Jabatan & Unit</th>
                   <th class="py-3 px-4">Status</th>
@@ -2000,6 +2016,7 @@
       selectedAgenda: null,
       userGPS: { lat: 0, lon: 0, accuracy: 0, distance: 999999, ready: false },
       rawAttendances: [],
+      attendanceSort: 'time_desc',
       selfieCompressedBase64: "",
       presensiSelfieBase64: "",
       suratIzinBase64: "",
@@ -3979,7 +3996,7 @@
               updateAdminFilterUnitOptions(res.availableUnits);
             }
 
-            renderAdminAttendanceTable(APP_STATE.rawAttendances);
+            filterAdminTableLocally();
           } else {
             var errMsg = (res && res.message) ? res.message : "Gagal memuat data dashboard dari server.";
             tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-rose-500 font-medium">' + errMsg + ' <button type="button" onclick="loadAdminDashboardData()" class="ml-2 px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-bold border border-rose-300 shadow-sm transition">🔄 Coba Lagi</button></td></tr>';
@@ -4120,7 +4137,65 @@
         var matchUnit = (selectedUnit === "SEMUA") || (item.unit === selectedUnit);
         return matchQuery && matchUnit;
       });
+
+      // Pengurutan Data Presensi (A-Z, Z-A, atau Waktu Terbaru)
+      var sortMode = APP_STATE.attendanceSort || 'time_desc';
+      if (sortMode === 'name_asc') {
+        filtered.sort(function (a, b) {
+          return (a.nama || '').localeCompare(b.nama || '', 'id', { sensitivity: 'base' });
+        });
+      } else if (sortMode === 'name_desc') {
+        filtered.sort(function (a, b) {
+          return (b.nama || '').localeCompare(a.nama || '', 'id', { sensitivity: 'base' });
+        });
+      }
+
       renderAdminAttendanceTable(filtered);
+    }
+
+    /**
+     * Fitur Pengurutan Rekap Presensi (A-Z / Z-A / Waktu Terbaru)
+     */
+    function toggleSortAttendance() {
+      var current = APP_STATE.attendanceSort || 'time_desc';
+      var next = 'name_asc';
+      if (current === 'time_desc') {
+        next = 'name_asc';
+      } else if (current === 'name_asc') {
+        next = 'name_desc';
+      } else {
+        next = 'time_desc';
+      }
+      APP_STATE.attendanceSort = next;
+      updateSortAttendanceUI();
+      filterAdminTableLocally();
+    }
+
+    function updateSortAttendanceUI() {
+      var sortMode = APP_STATE.attendanceSort || 'time_desc';
+      var label = document.getElementById('sortAttendanceLabel');
+      var thIcon = document.getElementById('sortThIcon');
+      var btn = document.getElementById('btnSortAttendance');
+
+      if (sortMode === 'name_asc') {
+        if (label) label.textContent = "Urutkan: Nama (A - Z)";
+        if (thIcon) thIcon.innerHTML = "&uarr; A-Z";
+        if (btn) {
+          btn.className = "px-2.5 py-1 text-xs font-semibold rounded-xl border border-blue-300 bg-blue-50 text-blue-700 flex items-center gap-1.5 transition shadow-xs cursor-pointer";
+        }
+      } else if (sortMode === 'name_desc') {
+        if (label) label.textContent = "Urutkan: Nama (Z - A)";
+        if (thIcon) thIcon.innerHTML = "&darr; Z-A";
+        if (btn) {
+          btn.className = "px-2.5 py-1 text-xs font-semibold rounded-xl border border-blue-300 bg-blue-50 text-blue-700 flex items-center gap-1.5 transition shadow-xs cursor-pointer";
+        }
+      } else {
+        if (label) label.textContent = "Urutkan: Waktu Terbaru";
+        if (thIcon) thIcon.innerHTML = "&#8645;";
+        if (btn) {
+          btn.className = "px-2.5 py-1 text-xs font-semibold rounded-xl border border-slate-200 bg-slate-50 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 text-slate-700 flex items-center gap-1.5 transition shadow-xs cursor-pointer";
+        }
+      }
     }
 
     function viewBuktiPopup(nama, fotoUrl, sigData, waktu, type) {
