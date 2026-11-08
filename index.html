@@ -1136,6 +1136,26 @@
               </tbody>
             </table>
           </div>
+
+          <!-- Bilah Paginasi Kehadiran Presensi (20 Data per Halaman) -->
+          <div class="px-4 py-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/60 no-print" id="presensiPaginationBar">
+            <div class="text-xs text-slate-500 font-medium">
+              Menampilkan <span class="font-bold text-slate-800" id="presensiPageRange">0</span> dari <span class="font-bold text-slate-800" id="presensiTotalRecords">0</span> catatan presensi
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="changePresensiPage(-1)" id="btnPresensiPrev" disabled
+                class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-xs flex items-center gap-1 cursor-pointer">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                <span>Sebelumnya</span>
+              </button>
+              <span class="text-xs font-bold px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-800 shadow-xs" id="presensiPageIndicator">Halaman 1 / 1</span>
+              <button type="button" onclick="changePresensiPage(1)" id="btnPresensiNext" disabled
+                class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-xs flex items-center gap-1 cursor-pointer">
+                <span>Selanjutnya</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
         </div>
       </div> <!-- Akhir adminSection-presensi -->
 
@@ -1224,6 +1244,26 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <!-- Bilah Paginasi Data Akun Pimpinan (20 Data per Halaman) -->
+          <div class="px-4 py-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/60 no-print" id="pimpinanPaginationBar">
+            <div class="text-xs text-slate-500 font-medium">
+              Menampilkan <span class="font-bold text-slate-800" id="pimpinanPageRange">0</span> dari <span class="font-bold text-slate-800" id="pimpinanTotalRecords">0</span> akun pimpinan
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="changePimpinanPage(-1)" id="btnPimpinanPrev" disabled
+                class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-xs flex items-center gap-1 cursor-pointer">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                <span>Sebelumnya</span>
+              </button>
+              <span class="text-xs font-bold px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-800 shadow-xs" id="pimpinanPageIndicator">Halaman 1 / 1</span>
+              <button type="button" onclick="changePimpinanPage(1)" id="btnPimpinanNext" disabled
+                class="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-xs flex items-center gap-1 cursor-pointer">
+                <span>Selanjutnya</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
           </div>
         </div>
       </div> <!-- Akhir adminSection-pimpinan -->
@@ -4046,9 +4086,17 @@
       }
     }
 
+    var PAGINATION_CONFIG = {
+      presensiPageSize: 20,
+      pimpinanPageSize: 20,
+      presensiCurrentPage: 1,
+      pimpinanCurrentPage: 1,
+      presensiFilteredList: [],
+      pimpinanFilteredList: []
+    };
+
     function renderAdminAttendanceTable(list) {
       var tbody = document.getElementById('adminAttendanceTbody');
-      document.getElementById('totalRecordsBadge').textContent = list.length + " Catatan Ditemukan";
 
       if (list.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-400">Belum ada presensi yang sesuai dengan filter.</td></tr>';
@@ -4129,7 +4177,10 @@
       tbody.innerHTML = html;
     }
 
-    function filterAdminTableLocally() {
+    function filterAdminTableLocally(resetPage) {
+      if (resetPage !== false) {
+        PAGINATION_CONFIG.presensiCurrentPage = 1;
+      }
       var query = (document.getElementById('adminSearchInput').value || '').toLowerCase().trim();
       var selectedUnit = document.getElementById('adminFilterUnit') ? document.getElementById('adminFilterUnit').value : "SEMUA";
       var filtered = APP_STATE.rawAttendances.filter(function (item) {
@@ -4150,7 +4201,51 @@
         });
       }
 
-      renderAdminAttendanceTable(filtered);
+      PAGINATION_CONFIG.presensiFilteredList = filtered;
+      renderCurrentPresensiPage();
+    }
+
+    function renderCurrentPresensiPage() {
+      var list = PAGINATION_CONFIG.presensiFilteredList || [];
+      var total = list.length;
+      var pageSize = PAGINATION_CONFIG.presensiPageSize;
+      var totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+      if (PAGINATION_CONFIG.presensiCurrentPage > totalPages) {
+        PAGINATION_CONFIG.presensiCurrentPage = totalPages;
+      }
+      if (PAGINATION_CONFIG.presensiCurrentPage < 1) {
+        PAGINATION_CONFIG.presensiCurrentPage = 1;
+      }
+      var page = PAGINATION_CONFIG.presensiCurrentPage;
+      var startIndex = (page - 1) * pageSize;
+      var endIndex = Math.min(startIndex + pageSize, total);
+      var pageItems = list.slice(startIndex, endIndex);
+
+      renderAdminAttendanceTable(pageItems);
+
+      var rangeEl = document.getElementById('presensiPageRange');
+      var totalEl = document.getElementById('presensiTotalRecords');
+      var indEl = document.getElementById('presensiPageIndicator');
+      var prevBtn = document.getElementById('btnPresensiPrev');
+      var nextBtn = document.getElementById('btnPresensiNext');
+      var totalBadge = document.getElementById('totalRecordsBadge');
+
+      if (totalBadge) totalBadge.textContent = total + " Catatan Ditemukan";
+      if (rangeEl) rangeEl.textContent = (total === 0) ? "0" : ((startIndex + 1) + " - " + endIndex);
+      if (totalEl) totalEl.textContent = total;
+      if (indEl) indEl.textContent = "Halaman " + page + " / " + totalPages;
+      if (prevBtn) prevBtn.disabled = (page <= 1);
+      if (nextBtn) nextBtn.disabled = (page >= totalPages);
+    }
+
+    function changePresensiPage(delta) {
+      var newPage = PAGINATION_CONFIG.presensiCurrentPage + delta;
+      var totalPages = Math.max(1, Math.ceil((PAGINATION_CONFIG.presensiFilteredList || []).length / PAGINATION_CONFIG.presensiPageSize));
+      if (newPage >= 1 && newPage <= totalPages) {
+        PAGINATION_CONFIG.presensiCurrentPage = newPage;
+        renderCurrentPresensiPage();
+      }
     }
 
     /**
@@ -4398,17 +4493,6 @@
       if (!tbody) return;
       tbody.innerHTML = '';
 
-      var badge = document.getElementById('totalPimpinanAccountsBadge');
-      if (badge) {
-        var totalLoaded = ADMIN_ACCOUNTS_CACHE ? ADMIN_ACCOUNTS_CACHE.length : 0;
-        var shown = list ? list.length : 0;
-        if (shown === totalLoaded) {
-          badge.textContent = totalLoaded + " Akun Terdaftar";
-        } else {
-          badge.textContent = shown + " dari " + totalLoaded + " Akun";
-        }
-      }
-
       if (!list || list.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-400">Belum ada akun pimpinan yang sesuai dengan filter.</td></tr>';
         return;
@@ -4463,7 +4547,10 @@
       });
     }
 
-    function filterAdminPimpinanTableLocally() {
+    function filterAdminPimpinanTableLocally(resetPage) {
+      if (resetPage !== false) {
+        PAGINATION_CONFIG.pimpinanCurrentPage = 1;
+      }
       var query = (document.getElementById('adminPimpinanSearchInput').value || '').toLowerCase().trim();
       var fKorwil = document.getElementById('adminPimFilterKorwil') ? document.getElementById('adminPimFilterKorwil').value : "SEMUA";
       var fCabang = document.getElementById('adminPimFilterCabang') ? document.getElementById('adminPimFilterCabang').value : "SEMUA";
@@ -4487,7 +4574,59 @@
         return matchKorwil && matchCabang && matchJabatan && matchUnit && matchQuery;
       });
 
-      renderAdminPimpinanTable(filtered);
+      PAGINATION_CONFIG.pimpinanFilteredList = filtered;
+      renderCurrentPimpinanPage();
+    }
+
+    function renderCurrentPimpinanPage() {
+      var list = PAGINATION_CONFIG.pimpinanFilteredList || [];
+      var total = list.length;
+      var pageSize = PAGINATION_CONFIG.pimpinanPageSize;
+      var totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+      if (PAGINATION_CONFIG.pimpinanCurrentPage > totalPages) {
+        PAGINATION_CONFIG.pimpinanCurrentPage = totalPages;
+      }
+      if (PAGINATION_CONFIG.pimpinanCurrentPage < 1) {
+        PAGINATION_CONFIG.pimpinanCurrentPage = 1;
+      }
+      var page = PAGINATION_CONFIG.pimpinanCurrentPage;
+      var startIndex = (page - 1) * pageSize;
+      var endIndex = Math.min(startIndex + pageSize, total);
+      var pageItems = list.slice(startIndex, endIndex);
+
+      renderAdminPimpinanTable(pageItems);
+
+      var rangeEl = document.getElementById('pimpinanPageRange');
+      var totalEl = document.getElementById('pimpinanTotalRecords');
+      var indEl = document.getElementById('pimpinanPageIndicator');
+      var prevBtn = document.getElementById('btnPimpinanPrev');
+      var nextBtn = document.getElementById('btnPimpinanNext');
+      var badge = document.getElementById('totalPimpinanAccountsBadge');
+
+      if (badge) {
+        var totalLoaded = ADMIN_ACCOUNTS_CACHE ? ADMIN_ACCOUNTS_CACHE.length : 0;
+        if (total === totalLoaded) {
+          badge.textContent = totalLoaded + " Akun Terdaftar";
+        } else {
+          badge.textContent = total + " dari " + totalLoaded + " Akun";
+        }
+      }
+
+      if (rangeEl) rangeEl.textContent = (total === 0) ? "0" : ((startIndex + 1) + " - " + endIndex);
+      if (totalEl) totalEl.textContent = total;
+      if (indEl) indEl.textContent = "Halaman " + page + " / " + totalPages;
+      if (prevBtn) prevBtn.disabled = (page <= 1);
+      if (nextBtn) nextBtn.disabled = (page >= totalPages);
+    }
+
+    function changePimpinanPage(delta) {
+      var newPage = PAGINATION_CONFIG.pimpinanCurrentPage + delta;
+      var totalPages = Math.max(1, Math.ceil((PAGINATION_CONFIG.pimpinanFilteredList || []).length / PAGINATION_CONFIG.pimpinanPageSize));
+      if (newPage >= 1 && newPage <= totalPages) {
+        PAGINATION_CONFIG.pimpinanCurrentPage = newPage;
+        renderCurrentPimpinanPage();
+      }
     }
 
     function renderAdminPimFilterDropdowns() {
